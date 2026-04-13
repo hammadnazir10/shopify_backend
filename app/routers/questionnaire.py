@@ -141,18 +141,20 @@ async def submit_ring_selection(body: RingSelectionPayload):
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"LLM error: {exc}")
 
-    summary_parts = [
-        "Designing a ring",
-        f"in {submission.metal.value.lower()}",
-        f"({submission.style_family} style, {submission.style_direction.value.lower()} direction).",
-    ]
+    summary = (
+        f"Ring · {submission.style_family} · {submission.metal.value} · "
+        f"{submission.style_direction.value}"
+    )
     if stone_assessment:
-        summary_parts.append(
-            f"Stone: {stone_assessment.stone_name} — {stone_assessment.fit_label.value}."
-        )
+        summary += f" · {stone_assessment.stone_name} ({stone_assessment.fit_label.value})"
 
-    return QuestionnaireResponse(
-        stone_assessment=stone_assessment,
-        design_brief=brief,
-        summary=" ".join(summary_parts),
+    return RingDesignResponse(
+        summary=summary,
+        stone_name=stone_assessment.stone_name if stone_assessment else None,
+        stone_fit=stone_assessment.fit_label.value if stone_assessment else None,
+        product_title=brief.product_title,
+        marketing_description=brief.marketing_description,
+        visual_description=brief.visual_description,
+        customer_label=brief.customer_label,
+        cautions=brief.cautions,
     )
