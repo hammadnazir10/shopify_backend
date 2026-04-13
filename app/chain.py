@@ -238,11 +238,10 @@ def _build_chain():
     return _prompt | llm | StrOutputParser()
 
 
-def _parse_response(raw: str, product_prompt: str) -> DesignBrief:
+def _parse_response(raw: str) -> DesignBrief:
     cleaned = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
     data = json.loads(cleaned)
     return DesignBrief(
-        product_prompt=product_prompt,
         customer_label=data["customer_label"],
         product_title=data["product_title"],
         marketing_description=data["marketing_description"],
@@ -271,4 +270,4 @@ async def generate_design_brief(
     product_prompt = build_product_prompt(submission, stone_assessment)
     chain = _build_chain()
     raw = await chain.ainvoke({"product_prompt": product_prompt})
-    return _parse_response(raw, product_prompt)
+    return _parse_response(raw)

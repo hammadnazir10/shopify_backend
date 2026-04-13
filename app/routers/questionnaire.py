@@ -12,7 +12,7 @@ from app.logic import (
 )
 from app.models import (
     ImageUploadResponse,
-    QuestionnaireResponse,
+    RingDesignResponse,
     RingSelectionPayload,
     StoneBranch,
     StoneSuitability,
@@ -66,13 +66,13 @@ async def upload_inspiration_image(file: UploadFile = File(...)):
 
 @router.post(
     "/ring-selection",
-    response_model=QuestionnaireResponse,
+    response_model=RingDesignResponse,
     summary="Submit a ring design questionnaire",
     description=(
         "Accepts ring-specific answers (jewelry_type is implicitly Ring). "
         "Validates stone suitability against ring fit and protection rules, "
-        "then returns a LangChain-generated design brief with a detailed "
-        "visual_description prompt ready for image generation."
+        "then returns a design brief with a detailed visual_description "
+        "prompt ready for image generation."
     ),
 )
 async def submit_ring_selection(body: RingSelectionPayload):

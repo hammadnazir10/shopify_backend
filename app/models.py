@@ -250,13 +250,9 @@ class RingSelectionPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 class DesignBrief(BaseModel):
-    # The assembled prompt text shown in the UI (built from questionnaire answers)
-    product_prompt: str
-    # LLM-generated outputs
     product_title: str
     marketing_description: str
     visual_description: str
-    # Supporting metadata
     customer_label: str
     cautions: Optional[str] = None
 
@@ -266,7 +262,12 @@ class ImageUploadResponse(BaseModel):
     filename: str
 
 
-class QuestionnaireResponse(BaseModel):
-    stone_assessment: Optional[StoneSuitability] = None
-    design_brief: DesignBrief
+class RingDesignResponse(BaseModel):
     summary: str
+    stone_name: Optional[str] = None
+    stone_fit: Optional[str] = None
+    product_title: str
+    marketing_description: str
+    visual_description: str
+    customer_label: str
+    cautions: Optional[str] = None
