@@ -263,3 +263,14 @@ class RingDesignResponse(BaseModel):
     summary: str
     image_prompt: str
     cautions: Optional[str] = None
+
+
+class ImageGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="The image generation prompt to send to the Banana nano model")
+
+
+class ImageGenerateResponse(BaseModel):
+    image_url: Optional[str] = Field(None, description="URL of the generated image, if returned by the model")
+    image_base64: Optional[str] = Field(None, description="Base64-encoded image data, if returned by the model")
+    model: str = Field(default="nano", description="Model used for generation")
+    prompt: str = Field(..., description="The prompt that was submitted")

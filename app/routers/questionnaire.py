@@ -1,9 +1,14 @@
+import asyncio
+import base64
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from google import genai
+from google.genai import types
 
 from app.chain import generate_design_brief
+from app.config import settings
 from app.logic import (
     assess_stone_by_name,
     get_stone_suitability_for_own_stone,
@@ -11,12 +16,16 @@ from app.logic import (
     score_stones_by_color,
 )
 from app.models import (
+    ImageGenerateRequest,
+    ImageGenerateResponse,
     ImageUploadResponse,
     RingDesignResponse,
     RingSelectionPayload,
     StoneBranch,
     StoneSuitability,
 )
+
+_IMAGEN_MODEL = "imagen-3.0-generate-002"
 
 UPLOADS_DIR = Path("uploads")
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -152,4 +161,51 @@ async def submit_ring_selection(body: RingSelectionPayload):
         summary=summary,
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Image generation via Gemini Imagen model
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/generate-image",
+    response_model=ImageGenerateResponse,
+    summary="Generate an image from a prompt using Gemini Imagen",
+    description=(
+        "Sends the given prompt to Google's Imagen model via the Gemini API "
+        "and returns the generated image as a base64-encoded string."
+    ),
+)
+async def generate_image(body: ImageGenerateRequest):
+    if not settings.gemini_api:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini_API key is not configured. Add it to your .env file.",
+        )
+
+    client = genai.Client(api_key=settings.gemini_api)
+
+    try:
+        response = await asyncio.to_thread(
+            client.models.generate_images,
+            model=_IMAGEN_MODEL,
+            prompt=body.prompt,
+            config=types.GenerateImagesConfig(number_of_images=1),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Gemini Imagen error: {exc}")
+
+    generated = response.generated_images
+    if not generated:
+        raise HTTPException(status_code=502, detail="Gemini returned no images.")
+
+    image_bytes = generated[0].image.image_bytes
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    return ImageGenerateResponse(
+        image_url=None,
+        image_base64=image_b64,
+        model=_IMAGEN_MODEL,
+        prompt=body.prompt,
     )
