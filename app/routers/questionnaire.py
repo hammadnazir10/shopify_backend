@@ -25,7 +25,7 @@ from app.models import (
     StoneSuitability,
 )
 
-_IMAGEN_MODEL = "imagen-3.0-generate-002"
+_IMAGEN_MODEL = "imagen-4.0-generate-001"
 
 UPLOADS_DIR = Path("uploads")
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
