@@ -200,22 +200,26 @@ The JSON must follow this exact schema:
   "product_title": "<luxurious, evocative product title — max 10 words>",
   "marketing_description": "<2–3 sentence compelling luxury e-commerce description — \
 evoke emotion, occasion, and craft>",
-  "visual_description": "<EXTREMELY detailed AI image-generation prompt — \
-must cover: jewelry type and style family; stone name, exact colour, cut/shape, \
-approximate carat, clarity appearance; metal type, karat, surface finish; \
-setting style in physical detail; band/shank/chain proportions and texture; \
-any decorative details (milgrain, filigree, pavé, engraving); overall scale and weight feel; \
-style direction expressed visually; professional jewellery photography lighting \
-(soft diffused studio light, clean shadows, macro lens detail); \
-background (clean white or dark velvet or marble); \
-camera angle (45-degree hero shot or top-down or side profile); \
-mood and occasion; photorealistic render, 8K, ultra-detailed>",
+  "visual_description": "<comma-separated image generation prompt in Midjourney/Stable Diffusion style — \
+NO full sentences, only descriptive tags and phrases separated by commas. \
+Must include in this order: \
+(1) subject — e.g. 'close-up of a solitaire engagement ring'; \
+(2) stone — name, exact colour, cut, carat, clarity; \
+(3) metal — karat, type, finish; \
+(4) setting — physical prong/bezel detail; \
+(5) band — shape, thickness, texture; \
+(6) style mood — e.g. 'delicate feminine romantic', 'bold architectural masculine'; \
+(7) lighting — e.g. 'soft diffused studio light', 'dramatic side lighting', 'macro ring photography'; \
+(8) background — e.g. 'clean white background', 'dark velvet surface', 'floating on marble'; \
+(9) camera — e.g. '45-degree hero angle', 'top-down view', 'side profile macro'; \
+(10) quality tags — 'photorealistic', 'jewelry photography', '8K', 'ultra-detailed', 'sharp focus', 'ray tracing'>",
   "cautions": "<one concise stone care sentence if the stone warrants it, otherwise null>"
 }}
 
 Rules:
-- visual_description must be at minimum 120 words and read like a professional \
-image-generation prompt — comma-separated descriptors, highly specific, no vague language.
+- visual_description must be comma-separated tags and short phrases ONLY — \
+no full sentences, no verbs like "featuring" or "crafted", no narrative. \
+Write it exactly like a Midjourney prompt. Minimum 80 comma-separated descriptors/phrases.
 - Never use placeholder text. Every field must be filled with real, specific content \
 drawn directly from the brief.
 - Maintain a consistent luxury tone across all fields.
