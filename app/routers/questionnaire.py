@@ -203,8 +203,13 @@ async def generate_image(body: ImageGenerateRequest):
     image_bytes = generated[0].image.image_bytes
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
+    # Save to uploads/ so the image is accessible via URL
+    filename = f"{uuid.uuid4().hex}.png"
+    dest = UPLOADS_DIR / filename
+    dest.write_bytes(image_bytes)
+
     return ImageGenerateResponse(
-        image_url=None,
+        image_url=f"/uploads/{filename}",
         image_base64=image_b64,
         model=_IMAGEN_MODEL,
         prompt=body.prompt,
