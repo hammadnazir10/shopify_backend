@@ -250,10 +250,7 @@ class RingSelectionPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 class DesignBrief(BaseModel):
-    product_title: str
-    marketing_description: str
-    visual_description: str
-    customer_label: str
+    image_prompt: str
     cautions: Optional[str] = None
 
 
@@ -264,10 +261,5 @@ class ImageUploadResponse(BaseModel):
 
 class RingDesignResponse(BaseModel):
     summary: str
-    stone_name: Optional[str] = None
-    stone_fit: Optional[str] = None
-    product_title: str
-    marketing_description: str
-    visual_description: str
-    customer_label: str
+    image_prompt: str
     cautions: Optional[str] = None

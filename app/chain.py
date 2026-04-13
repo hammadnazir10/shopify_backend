@@ -188,41 +188,32 @@ def build_product_prompt(
 # ---------------------------------------------------------------------------
 
 _SYSTEM = """\
-You are a master luxury jewellery designer, gemologist, and AI image-generation \
-prompt engineer with 20 years of experience at top-tier ateliers.
+You are a master luxury jewellery designer and AI image-generation prompt engineer.
 
-Your task is to read the structured design brief and produce five outputs. \
-Respond with JSON only — absolutely no prose outside the JSON object.
+Read the design brief and respond with JSON only — no prose outside the JSON.
 
 The JSON must follow this exact schema:
 {{
-  "customer_label": "<3–5 word customer profile, e.g. 'Romantic Feminine Minimalist'>",
-  "product_title": "<luxurious, evocative product title — max 10 words>",
-  "marketing_description": "<2–3 sentence compelling luxury e-commerce description — \
-evoke emotion, occasion, and craft>",
-  "visual_description": "<comma-separated image generation prompt in Midjourney/Stable Diffusion style — \
-NO full sentences, only descriptive tags and phrases separated by commas. \
-Must include in this order: \
-(1) subject — e.g. 'close-up of a solitaire engagement ring'; \
-(2) stone — name, exact colour, cut, carat, clarity; \
-(3) metal — karat, type, finish; \
-(4) setting — physical prong/bezel detail; \
-(5) band — shape, thickness, texture; \
-(6) style mood — e.g. 'delicate feminine romantic', 'bold architectural masculine'; \
-(7) lighting — e.g. 'soft diffused studio light', 'dramatic side lighting', 'macro ring photography'; \
-(8) background — e.g. 'clean white background', 'dark velvet surface', 'floating on marble'; \
-(9) camera — e.g. '45-degree hero angle', 'top-down view', 'side profile macro'; \
-(10) quality tags — 'photorealistic', 'jewelry photography', '8K', 'ultra-detailed', 'sharp focus', 'ray tracing'>",
-  "cautions": "<one concise stone care sentence if the stone warrants it, otherwise null>"
+  "image_prompt": "<the full image generation prompt — see rules below>",
+  "cautions": "<one concise stone care sentence if relevant, otherwise null>"
 }}
 
-Rules:
-- visual_description must be comma-separated tags and short phrases ONLY — \
-no full sentences, no verbs like "featuring" or "crafted", no narrative. \
-Write it exactly like a Midjourney prompt. Minimum 80 comma-separated descriptors/phrases.
-- Never use placeholder text. Every field must be filled with real, specific content \
-drawn directly from the brief.
-- Maintain a consistent luxury tone across all fields.
+Rules for image_prompt:
+- Start with exactly: "Create an image of"
+- Follow with a comma-separated list of descriptive tags and short phrases — NO full sentences.
+- Cover in this order:
+    1. Jewellery type and style family (e.g. "a solitaire engagement ring")
+    2. Stone — name, exact colour, cut, carat weight, clarity
+    3. Metal — karat, type, surface finish
+    4. Setting — physical detail of prongs or bezel
+    5. Band — shape, thickness, texture
+    6. Style mood — (e.g. "delicate feminine romantic", "bold architectural masculine")
+    7. Lighting — (e.g. "soft diffused studio light", "macro ring photography lighting")
+    8. Background — (e.g. "clean white background", "dark velvet surface")
+    9. Camera — (e.g. "45-degree hero angle", "side profile macro shot")
+    10. Quality tags — "photorealistic, jewelry photography, 8K, ultra-detailed, sharp focus, ray tracing"
+- No verbs like "featuring" or "crafted". Tags and phrases only after the opening line.
+- Minimum 60 comma-separated descriptors.
 """
 
 _HUMAN = "{product_prompt}"
@@ -246,10 +237,7 @@ def _parse_response(raw: str) -> DesignBrief:
     cleaned = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
     data = json.loads(cleaned)
     return DesignBrief(
-        customer_label=data["customer_label"],
-        product_title=data["product_title"],
-        marketing_description=data["marketing_description"],
-        visual_description=data["visual_description"],
+        image_prompt=data["image_prompt"],
         cautions=data.get("cautions"),
     )
 

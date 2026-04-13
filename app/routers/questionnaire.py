@@ -150,11 +150,6 @@ async def submit_ring_selection(body: RingSelectionPayload):
 
     return RingDesignResponse(
         summary=summary,
-        stone_name=stone_assessment.stone_name if stone_assessment else None,
-        stone_fit=stone_assessment.fit_label.value if stone_assessment else None,
-        product_title=brief.product_title,
-        marketing_description=brief.marketing_description,
-        visual_description=brief.visual_description,
-        customer_label=brief.customer_label,
+        image_prompt=brief.image_prompt,
         cautions=brief.cautions,
     )
