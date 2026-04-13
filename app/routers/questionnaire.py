@@ -1,9 +1,12 @@
 import asyncio
 import base64
+import io
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from PIL import Image
+
+from fastapi import APIRouter, Form, HTTPException, UploadFile, File
 from google import genai
 from google.genai import types
 
@@ -25,7 +28,19 @@ from app.models import (
     StoneSuitability,
 )
 
-_IMAGEN_MODEL = "imagen-4.0-generate-001"
+_IMAGEN_MODEL      = "imagen-4.0-generate-001"       # text-to-image
+_IMAGEN_REF_MODEL  = "gemini-2.5-flash-image"        # multimodal: image-in + image-out
+_OUTPUT_SIZE       = (1080, 1080)                     # target HD resolution
+
+
+def _upscale_to_hd(raw_bytes: bytes) -> bytes:
+    """Upscale image bytes to _OUTPUT_SIZE using Lanczos (highest quality)."""
+    img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+    if img.size != _OUTPUT_SIZE:
+        img = img.resize(_OUTPUT_SIZE, Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=False, compress_level=1)
+    return buf.getvalue()
 
 UPLOADS_DIR = Path("uploads")
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -173,11 +188,15 @@ async def submit_ring_selection(body: RingSelectionPayload):
     response_model=ImageGenerateResponse,
     summary="Generate an image from a prompt using Gemini Imagen",
     description=(
-        "Sends the given prompt to Google's Imagen model via the Gemini API "
-        "and returns the generated image as a base64-encoded string."
+        "Accepts a prompt (required) and an optional reference image. "
+        "Without an image: pure text-to-image generation. "
+        "With an image: uses it as a visual reference to guide generation."
     ),
 )
-async def generate_image(body: ImageGenerateRequest):
+async def generate_image(
+    prompt: str = Form(..., description="Image generation prompt"),
+    image: UploadFile = File(None, description="Optional reference image (JPG / PNG / WebP)"),
+):
     if not settings.gemini_api:
         raise HTTPException(
             status_code=503,
@@ -186,31 +205,62 @@ async def generate_image(body: ImageGenerateRequest):
 
     client = genai.Client(api_key=settings.gemini_api)
 
-    try:
-        response = await asyncio.to_thread(
-            client.models.generate_images,
-            model=_IMAGEN_MODEL,
-            prompt=body.prompt,
-            config=types.GenerateImagesConfig(number_of_images=1),
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Gemini Imagen error: {exc}")
+    if image is not None:
+        # --- Image-guided generation via Gemini multimodal model ---
+        ref_bytes = await image.read()
+        mime = image.content_type or "image/png"
+        try:
+            gen_response = await asyncio.to_thread(
+                client.models.generate_content,
+                model=_IMAGEN_REF_MODEL,
+                contents=[
+                    types.Content(parts=[
+                        types.Part(text=f"Using the provided image as a visual reference, generate a new image based on this description: {prompt}"),
+                        types.Part(inline_data=types.Blob(mime_type=mime, data=ref_bytes)),
+                    ])
+                ],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE", "TEXT"],
+                ),
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Gemini image-ref error: {exc}")
 
-    generated = response.generated_images
-    if not generated:
-        raise HTTPException(status_code=502, detail="Gemini returned no images.")
+        image_bytes = None
+        for part in gen_response.candidates[0].content.parts:
+            if part.inline_data:
+                image_bytes = part.inline_data.data
+                break
+        if not image_bytes:
+            raise HTTPException(status_code=502, detail="Gemini returned no image in response.")
+        used_model = _IMAGEN_REF_MODEL
 
-    image_bytes = generated[0].image.image_bytes
+    else:
+        # --- Text-to-image generation ---
+        try:
+            gen_response = await asyncio.to_thread(
+                client.models.generate_images,
+                model=_IMAGEN_MODEL,
+                prompt=prompt,
+                config=types.GenerateImagesConfig(number_of_images=1),
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Gemini Imagen error: {exc}")
+
+        generated = gen_response.generated_images
+        if not generated:
+            raise HTTPException(status_code=502, detail="Gemini returned no images.")
+        image_bytes = generated[0].image.image_bytes
+        used_model = _IMAGEN_MODEL
+
+    image_bytes = _upscale_to_hd(image_bytes)
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    # Save to uploads/ so the image is accessible via URL
     filename = f"{uuid.uuid4().hex}.png"
-    dest = UPLOADS_DIR / filename
-    dest.write_bytes(image_bytes)
+    (UPLOADS_DIR / filename).write_bytes(image_bytes)
 
     return ImageGenerateResponse(
         image_url=f"/uploads/{filename}",
         image_base64=image_b64,
-        model=_IMAGEN_MODEL,
-        prompt=body.prompt,
+        model=used_model,
+        prompt=prompt,
     )
