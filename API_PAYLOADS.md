@@ -33,6 +33,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Solitaire",
   "stone_branch": "Yes, I already have a stone",
@@ -51,6 +52,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Masculine",
   "style_family": "Signet",
   "stone_branch": "Yes, I already have a stone",
@@ -69,6 +71,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Balanced",
   "style_family": "Bezel",
   "stone_branch": "Yes, I already have a stone",
@@ -91,6 +94,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Three Stone",
   "stone_branch": "I have a YSS stone link or SKU",
@@ -104,6 +108,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Balanced",
   "style_family": "Vintage-Inspired",
   "stone_branch": "I have a YSS stone link or SKU",
@@ -117,6 +122,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Masculine",
   "style_family": "Contemporary Minimal",
   "stone_branch": "I have a YSS stone link or SKU",
@@ -145,6 +151,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Halo",
   "stone_branch": "No, help me choose",
@@ -159,6 +166,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Toi et Moi",
   "stone_branch": "No, help me choose",
@@ -173,6 +181,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Masculine",
   "style_family": "Signet",
   "stone_branch": "No, help me choose",
@@ -187,6 +196,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Balanced",
   "style_family": "Eternity",
   "stone_branch": "No, help me choose",
@@ -207,6 +217,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Cluster",
   "stone_branch": "No, help me choose",
@@ -221,6 +232,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Masculine",
   "style_family": "Signet",
   "stone_branch": "No, help me choose",
@@ -235,6 +247,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Balanced",
   "style_family": "Solitaire",
   "stone_branch": "No, help me choose",
@@ -249,6 +262,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Vintage-Inspired",
   "stone_branch": "No, help me choose",
@@ -287,6 +301,7 @@ Response:
 
 ```json
 {
+  "jewelry_type": "Ring",
   "style_direction": "Feminine",
   "style_family": "Vintage-Inspired",
   "stone_branch": "No, help me choose",
@@ -306,6 +321,7 @@ Response:
 
 | Field | Valid values |
 |-------|-------------|
+| `jewelry_type` | `Ring` `Necklace / Pendant` `Bracelet` `Earrings` `Other` *(optional, defaults to Ring)* |
 | `style_direction` | `Masculine` `Balanced` `Feminine` |
 | `style_family` | `Solitaire` `Three Stone` `Halo` `Bezel` `Signet` `Cluster` `Toi et Moi` `Eternity` `Vintage-Inspired` `Contemporary Minimal` |
 | `stone_branch` | `Yes, I already have a stone` `No, help me choose` `I have a YSS stone link or SKU` |
