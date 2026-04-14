@@ -101,10 +101,10 @@ class StoneSuitability(BaseModel):
 # ---------------------------------------------------------------------------
 
 class OwnStoneDetails(BaseModel):
-    stone_type: str = Field(..., description="Stone type")
-    color: str = Field(..., description="Colour")
-    shape: str = Field(..., description="Shape")
-    approximate_size: str = Field(..., description="Approximate size or carat weight")
+    stone_type: Optional[str] = Field(None, description="Stone type")
+    color: Optional[str] = Field(None, description="Colour")
+    shape: Optional[str] = Field(None, description="Shape")
+    approximate_size: Optional[str] = Field(None, description="Approximate size or carat weight")
 
 
 class QuestionnaireSubmission(BaseModel):
@@ -116,7 +116,7 @@ class QuestionnaireSubmission(BaseModel):
     style_direction: StyleDirection
 
     # Q3 — style family chosen from dynamic list
-    style_family: str
+    style_family: Optional[str] = None
 
     # Q4 — stone branch
     stone_branch: StoneBranch
@@ -156,47 +156,45 @@ class QuestionnaireSubmission(BaseModel):
 # ---------------------------------------------------------------------------
 
 class RingSelectionPayload(BaseModel):
-    """Dedicated submission model for ring designs.
-    jewelry_type is implicitly Ring — callers do not need to supply it."""
+    """Dedicated submission model for ring designs."""
+
+    # Q1 — jewelry type chosen by the user (e.g. Ring, Necklace / Pendant)
+    jewelry_type: Optional[JewelryType] = Field(None, description="The type of jewelry the user selected")
 
     # Q2
-    style_direction: StyleDirection
+    style_direction: Optional[StyleDirection] = None
 
     # Q3 — ring-specific style families only
-    style_family: RingStyleFamily
+    style_family: Optional[RingStyleFamily] = None
 
     # Q4 — stone branch
-    stone_branch: StoneBranch
+    stone_branch: Optional[StoneBranch] = None
 
-    # Q4 branch 1 — own stone (required when stone_branch = "already_have")
+    # Q4 branch 1 — own stone
     own_stone: Optional[OwnStoneDetails] = None
 
-    # Q4 branch 2 — YSS (required when stone_branch = "yss_sku")
+    # Q4 branch 2 — YSS
     yss_reference: Optional[str] = Field(None, description="YSS product link or SKU")
 
-    # Q4a — how to choose (required when stone_branch = "help_choose")
+    # Q4a — how to choose
     stone_choice_method: Optional[StoneChoiceMethod] = Field(
-        None, description="Pick by stone or Pick by colour — required when stone_branch is 'No, help me choose'"
+        None, description="Pick by stone or Pick by colour"
     )
 
-    # Q4 branch 3A — pick by stone (required when stone_choice_method = "Pick by stone")
-    chosen_stone_name: Optional[str] = Field(
-        None, description="Stone name — required when stone_choice_method is 'Pick by stone'"
-    )
+    # Q4 branch 3A — pick by stone
+    chosen_stone_name: Optional[str] = Field(None, description="Stone name")
 
-    # Q4 branch 3B — pick by colour (required when stone_choice_method = "Pick by colour")
-    chosen_color: Optional[str] = Field(
-        None, description="Colour — required when stone_choice_method is 'Pick by colour'"
-    )
+    # Q4 branch 3B — pick by colour
+    chosen_color: Optional[str] = Field(None, description="Colour")
 
     # Q5
-    metal: MetalOption
+    metal: Optional[MetalOption] = None
 
     # Q6
-    setting: SettingOption
+    setting: Optional[SettingOption] = None
 
     # Q7
-    wear_frequency: WearFrequency
+    wear_frequency: Optional[WearFrequency] = None
 
     # Q8
     final_preferences: Optional[str] = None
@@ -229,9 +227,9 @@ class RingSelectionPayload(BaseModel):
     def to_questionnaire_submission(self) -> "QuestionnaireSubmission":
         """Convert to the generic QuestionnaireSubmission used by business logic."""
         return QuestionnaireSubmission(
-            jewelry_type=JewelryType.ring,
+            jewelry_type=self.jewelry_type or JewelryType.ring,
             style_direction=self.style_direction,
-            style_family=self.style_family.value,
+            style_family=self.style_family.value if self.style_family else None,
             stone_branch=self.stone_branch,
             own_stone=self.own_stone,
             yss_reference=self.yss_reference,
