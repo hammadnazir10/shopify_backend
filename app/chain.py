@@ -118,10 +118,11 @@ def build_product_prompt(
         stone_block = "STONE: not specified\n"
         stone_summary = "gemstone"
 
-    metal_detail = _METAL_FINISH.get(submission.metal.value, submission.metal.value)
-    setting_detail = _SETTING_DETAIL.get(submission.setting.value, submission.setting.value)
-    wear_detail = _WEAR_CONTEXT.get(submission.wear_frequency.value, submission.wear_frequency.value)
-    direction_detail = _DIRECTION_DETAIL.get(submission.style_direction.value, submission.style_direction.value)
+    metal_detail = _METAL_FINISH.get(submission.metal.value, submission.metal.value) if submission.metal else "not specified"
+    setting_detail = _SETTING_DETAIL.get(submission.setting.value, submission.setting.value) if submission.setting else "not specified"
+    wear_detail = _WEAR_CONTEXT.get(submission.wear_frequency.value, submission.wear_frequency.value) if submission.wear_frequency else "not specified"
+    direction_detail = _DIRECTION_DETAIL.get(submission.style_direction.value, submission.style_direction.value) if submission.style_direction else "not specified"
+    direction_label = submission.style_direction.value if submission.style_direction else (submission.gender_type or "not specified")
 
     lines = [
         "=" * 60,
@@ -129,17 +130,35 @@ def build_product_prompt(
         "=" * 60,
         "",
         f"PIECE TYPE     : {jewelry}",
-        f"STYLE FAMILY   : {submission.style_family}",
-        f"STYLE DIRECTION: {submission.style_direction.value} — {direction_detail}",
+        f"STYLE FAMILY   : {submission.style_family or 'not specified'}",
+        f"STYLE DIRECTION: {direction_label} — {direction_detail}",
+    ]
+
+    if submission.style:
+        lines += [f"STYLE NOTES    : {submission.style}"]
+
+    if submission.size_type:
+        lines += [f"SIZE TYPE      : {submission.size_type}"]
+
+    lines += [
         "",
         stone_block,
-        f"METAL          : {submission.metal.value} — {metal_detail}",
-        f"SETTING        : {submission.setting.value} — {setting_detail}",
-        f"WEAR CONTEXT   : {submission.wear_frequency.value} — {wear_detail}",
+        f"METAL          : {submission.metal.value if submission.metal else 'not specified'} — {metal_detail}",
+        f"SETTING        : {submission.setting.value if submission.setting else 'not specified'} — {setting_detail}",
+        f"WEAR CONTEXT   : {submission.wear_frequency.value if submission.wear_frequency else 'not specified'} — {wear_detail}",
     ]
 
     if submission.final_preferences:
         lines += ["", f"CUSTOMER NOTES : {submission.final_preferences}"]
+
+    if submission.additional_details:
+        lines += ["", f"ADDITIONAL DETAILS : {submission.additional_details}"]
+
+    if submission.additional_style:
+        lines += ["", f"ADDITIONAL STYLE   : {submission.additional_style}"]
+
+    if submission.inspiration_keywords:
+        lines += ["", f"INSPIRATION KEYWORDS : {', '.join(submission.inspiration_keywords)}"]
 
     if submission.inspiration_image_url:
         lines += ["", "INSPIRATION    : Customer has uploaded an inspiration image for visual reference."]
@@ -173,7 +192,7 @@ def build_product_prompt(
         "   • Camera angle and perspective (e.g. 45-degree hero shot, top-down, side profile)",
         "   • Any engraving, milgrain, filigree, or surface texture details",
         "   • Wear context mood (everyday elegance vs statement glamour)",
-        f"   Incorporate: {stone_summary} in {submission.metal.value}, {submission.style_family} style.",
+        f"   Incorporate: {stone_summary} in {submission.metal.value if submission.metal else 'selected metal'}, {submission.style_family or 'custom'} style.",
         "",
         "4. CUSTOMER LABEL — 3–5 word profile of the ideal wearer.",
         "",
