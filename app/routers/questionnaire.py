@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import io
 import uuid
 
@@ -261,13 +260,11 @@ async def generate_image(
         used_model = _IMAGEN_MODEL
 
     image_bytes = _upscale_to_hd(image_bytes)
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
     filename = f"generated/{uuid.uuid4().hex}.png"
     image_url = await asyncio.to_thread(s3_upload, filename, image_bytes, "image/png")
 
     return ImageGenerateResponse(
         image_url=image_url,
-        image_base64=image_b64,
         model=used_model,
         prompt=prompt,
     )

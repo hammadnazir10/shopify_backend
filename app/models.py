@@ -419,7 +419,6 @@ class ImageGenerateRequest(BaseModel):
 
 
 class ImageGenerateResponse(BaseModel):
-    image_url: Optional[str] = Field(None, description="URL of the generated image, if returned by the model")
-    image_base64: Optional[str] = Field(None, description="Base64-encoded image data, if returned by the model")
+    image_url: str = Field(..., description="S3 URL of the generated image")
     model: str = Field(default="nano", description="Model used for generation")
     prompt: str = Field(..., description="The prompt that was submitted")
