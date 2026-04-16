@@ -5,7 +5,6 @@ import uuid
 from pathlib import Path
 
 from PIL import Image
-from rembg import remove as rembg_remove
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
 from google import genai
@@ -43,17 +42,6 @@ def _upscale_to_hd(raw_bytes: bytes) -> bytes:
     img.save(buf, format="PNG", optimize=False, compress_level=1)
     return buf.getvalue()
 
-
-def _remove_background(raw_bytes: bytes) -> bytes:
-    """Remove background and return RGBA PNG with transparent background."""
-    result = rembg_remove(raw_bytes)
-    # Ensure output is exactly _OUTPUT_SIZE
-    img = Image.open(io.BytesIO(result)).convert("RGBA")
-    if img.size != _OUTPUT_SIZE:
-        img = img.resize(_OUTPUT_SIZE, Image.LANCZOS)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=False, compress_level=1)
-    return buf.getvalue()
 
 UPLOADS_DIR = Path("uploads")
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -268,7 +256,6 @@ async def generate_image(
         used_model = _IMAGEN_MODEL
 
     image_bytes = _upscale_to_hd(image_bytes)
-    image_bytes = await asyncio.to_thread(_remove_background, image_bytes)
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
     filename = f"{uuid.uuid4().hex}.png"
     (UPLOADS_DIR / filename).write_bytes(image_bytes)
