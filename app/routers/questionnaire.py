@@ -2,7 +2,6 @@ import asyncio
 import base64
 import io
 import uuid
-from pathlib import Path
 
 from PIL import Image
 
@@ -12,6 +11,7 @@ from google.genai import types
 
 from app.chain import generate_design_brief
 from app.config import settings
+from app.s3 import ensure_bucket_exists, upload_image as s3_upload
 from app.logic import (
     assess_stone_by_name,
     get_stone_suitability_for_own_stone,
@@ -43,11 +43,15 @@ def _upscale_to_hd(raw_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
-UPLOADS_DIR = Path("uploads")
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 router = APIRouter(prefix="/api", tags=["Ring Design"])
+
+
+@router.on_event("startup")
+async def _ensure_s3_bucket():
+    await asyncio.to_thread(ensure_bucket_exists)
 
 
 # ---------------------------------------------------------------------------
@@ -75,12 +79,13 @@ async def upload_inspiration_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File exceeds the 10 MB limit.")
 
     suffix = Path(file.filename).suffix.lower() if file.filename else ".jpg"
-    unique_name = f"{uuid.uuid4().hex}{suffix}"
-    dest = UPLOADS_DIR / unique_name
-    dest.write_bytes(contents)
+    unique_name = f"uploads/{uuid.uuid4().hex}{suffix}"
+    image_url = await asyncio.to_thread(
+        s3_upload, unique_name, contents, file.content_type or "image/jpeg"
+    )
 
     return ImageUploadResponse(
-        image_url=f"/uploads/{unique_name}",
+        image_url=image_url,
         filename=unique_name,
     )
 
@@ -257,11 +262,11 @@ async def generate_image(
 
     image_bytes = _upscale_to_hd(image_bytes)
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-    filename = f"{uuid.uuid4().hex}.png"
-    (UPLOADS_DIR / filename).write_bytes(image_bytes)
+    filename = f"generated/{uuid.uuid4().hex}.png"
+    image_url = await asyncio.to_thread(s3_upload, filename, image_bytes, "image/png")
 
     return ImageGenerateResponse(
-        image_url=f"/uploads/{filename}",
+        image_url=image_url,
         image_base64=image_b64,
         model=used_model,
         prompt=prompt,
