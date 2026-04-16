@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
     aws_region: str = "us-east-2"
-    s3_bucket_name: str = "photos"
+    s3_bucket_name: str = "yss-jewelry-images"
 
 
 settings = Settings()

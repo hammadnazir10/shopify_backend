@@ -38,6 +38,11 @@ def ensure_bucket_exists() -> None:
                     Bucket=bucket,
                     CreateBucketConfiguration={"LocationConstraint": region},
                 )
+        elif code == "403":
+            raise RuntimeError(
+                f"S3 bucket '{bucket}' exists but is owned by a different AWS account. "
+                "S3 bucket names are globally unique — choose a unique name in S3_BUCKET_NAME."
+            )
         else:
             raise
 
