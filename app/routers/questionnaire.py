@@ -105,34 +105,22 @@ async def submit_ring_selection(body: RingSelectionPayload):
     stone_assessment: StoneSuitability | None = None
 
     if submission.stone_branch == StoneBranch.already_have:
-        stone_assessment = get_stone_suitability_for_own_stone(
-            stone_type=submission.own_stone.stone_type,
-            jewelry_type=submission.jewelry_type,
-            wear_frequency=submission.wear_frequency,
-        )
-        if not stone_assessment:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Stone '{submission.own_stone.stone_type}' not found in the suitability table.",
+        if submission.own_stone and submission.own_stone.stone_type:
+            stone_assessment = get_stone_suitability_for_own_stone(
+                stone_type=submission.own_stone.stone_type,
+                jewelry_type=submission.jewelry_type,
+                wear_frequency=submission.wear_frequency,
             )
 
     elif submission.stone_branch == StoneBranch.yss_sku:
-        resolved = resolve_stone_from_yss_reference(submission.yss_reference)
-        if not resolved:
-            raise HTTPException(
-                status_code=404,
-                detail="Could not resolve the YSS reference to a catalogued stone.",
-            )
-        stone_assessment = assess_stone_by_name(
-            stone_name=resolved,
-            jewelry_type=submission.jewelry_type,
-            wear_frequency=submission.wear_frequency,
-        )
-        if not stone_assessment:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Resolved stone '{resolved}' not found in the suitability table.",
-            )
+        if submission.yss_reference:
+            resolved = resolve_stone_from_yss_reference(submission.yss_reference)
+            if resolved:
+                stone_assessment = assess_stone_by_name(
+                    stone_name=resolved,
+                    jewelry_type=submission.jewelry_type,
+                    wear_frequency=submission.wear_frequency,
+                )
 
     elif submission.stone_branch == StoneBranch.help_choose:
         if submission.chosen_stone_name:
@@ -141,23 +129,14 @@ async def submit_ring_selection(body: RingSelectionPayload):
                 jewelry_type=submission.jewelry_type,
                 wear_frequency=submission.wear_frequency,
             )
-            if not stone_assessment:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Stone '{submission.chosen_stone_name}' not found in the suitability table.",
-                )
-        else:
+        elif submission.chosen_color:
             ranked = score_stones_by_color(
                 color=submission.chosen_color,
                 jewelry_type=submission.jewelry_type,
                 wear_frequency=submission.wear_frequency,
             )
-            if not ranked:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"No stones found for colour '{submission.chosen_color}'.",
-                )
-            stone_assessment = ranked[0]
+            if ranked:
+                stone_assessment = ranked[0]
 
     try:
         brief = await generate_design_brief(submission, stone_assessment)
