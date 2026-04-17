@@ -1,22 +1,22 @@
 import asyncio
 import io
 import uuid
+from pathlib import Path
 
 from PIL import Image
-
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
 from google import genai
 from google.genai import types
 
-from app.chain import generate_design_brief
-from app.config import settings
-from app.s3 import ensure_bucket_exists, upload_image as s3_upload
-from app.logic import (
+from app.services.llm import generate_design_brief
+from app.services.s3 import ensure_bucket_exists, upload_image as s3_upload
+from app.services.stone import (
     assess_stone_by_name,
     get_stone_suitability_for_own_stone,
     resolve_stone_from_yss_reference,
     score_stones_by_color,
 )
+from app.config import settings
 from app.models import (
     ImageGenerateRequest,
     ImageGenerateResponse,
@@ -27,25 +27,24 @@ from app.models import (
     StoneSuitability,
 )
 
-_IMAGEN_MODEL      = "imagen-4.0-generate-001"       # text-to-image
-_IMAGEN_REF_MODEL  = "gemini-2.5-flash-image"        # multimodal: image-in + image-out
-_OUTPUT_SIZE       = (1080, 1080)                     # target HD resolution
+_IMAGEN_MODEL      = "gemini-2.5-flash-image"   # text-to-image
+_IMAGEN_REF_MODEL  = "gemini-2.5-flash-image"  # multimodal: image-in + image-out
+_OUTPUT_SIZE       = (1080, 1080)
+
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+router = APIRouter(prefix="/api", tags=["Ring Design"])
 
 
 def _upscale_to_hd(raw_bytes: bytes) -> bytes:
-    """Upscale image bytes to _OUTPUT_SIZE using Lanczos (highest quality)."""
+    """Upscale image bytes to _OUTPUT_SIZE using Lanczos."""
     img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
     if img.size != _OUTPUT_SIZE:
         img = img.resize(_OUTPUT_SIZE, Image.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=False, compress_level=1)
     return buf.getvalue()
-
-
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
-
-router = APIRouter(prefix="/api", tags=["Ring Design"])
 
 
 @router.on_event("startup")
@@ -83,10 +82,7 @@ async def upload_inspiration_image(file: UploadFile = File(...)):
         s3_upload, unique_name, contents, file.content_type or "image/jpeg"
     )
 
-    return ImageUploadResponse(
-        image_url=image_url,
-        filename=unique_name,
-    )
+    return ImageUploadResponse(image_url=image_url, filename=unique_name)
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +182,7 @@ async def submit_ring_selection(body: RingSelectionPayload):
 
 
 # ---------------------------------------------------------------------------
-# Image generation via Gemini Imagen model
+# Image generation via Gemini Imagen
 # ---------------------------------------------------------------------------
 
 @router.post(
@@ -212,7 +208,6 @@ async def generate_image(
     client = genai.Client(api_key=settings.gemini_api)
 
     if image is not None:
-        # --- Image-guided generation via Gemini multimodal model ---
         ref_bytes = await image.read()
         mime = image.content_type or "image/png"
         try:
@@ -242,7 +237,6 @@ async def generate_image(
         used_model = _IMAGEN_REF_MODEL
 
     else:
-        # --- Text-to-image generation ---
         try:
             gen_response = await asyncio.to_thread(
                 client.models.generate_images,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 # ---------------------------------------------------------------------------
@@ -317,33 +317,6 @@ class RingSelectionPayload(BaseModel):
 
     def _resolve_pick_method(self) -> Optional[StoneChoiceMethod]:
         return _PICK_MAP.get(self.pick or "") if self.pick else None
-
-    # ------------------------------------------------------------------
-    # Validation
-    # ------------------------------------------------------------------
-
-    @model_validator(mode="after")
-    def check_branch_fields(self) -> "RingSelectionPayload":
-        branch = self._resolve_stone_branch()
-
-        if branch == StoneBranch.already_have:
-            if not self.ownStone:
-                raise ValueError("ownStone is required when stone is 'own'.")
-
-        elif branch == StoneBranch.yss_sku:
-            if not self.yssReference:
-                raise ValueError("yssReference is required when stone is 'yss'.")
-
-        elif branch == StoneBranch.help_choose:
-            pick = self._resolve_pick_method()
-            if not pick:
-                raise ValueError("pick is required when stone is 'choose' (use 'color' or 'stone').")
-            if pick == StoneChoiceMethod.by_stone and not self.gemType:
-                raise ValueError("gemType is required when pick is 'stone'.")
-            if pick == StoneChoiceMethod.by_color and not (self.stonecolor or self.chosenColor):
-                raise ValueError("stonecolor or chosenColor is required when pick is 'color'.")
-
-        return self
 
     # ------------------------------------------------------------------
     # Conversion to internal model
