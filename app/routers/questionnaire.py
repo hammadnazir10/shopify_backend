@@ -27,7 +27,7 @@ from app.models import (
     StoneSuitability,
 )
 
-_IMAGEN_MODEL      = "gemini-2.5-flash-image"   # text-to-image
+_IMAGEN_MODEL      = "imagen-4.0-generate-001"   # text-to-image
 _IMAGEN_REF_MODEL  = "gemini-2.5-flash-image"  # multimodal: image-in + image-out
 _OUTPUT_SIZE       = (1080, 1080)
 
