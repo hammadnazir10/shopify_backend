@@ -572,8 +572,72 @@ def build_product_prompt(
         lines += ["", "REFERENCE IMAGE  : Customer has uploaded an inspiration image. Match its overall visual mood and aesthetic closely."]
 
     # ------------------------------------------------------------------
+    # Jewelry-type-specific photography guidance
+    # ------------------------------------------------------------------
+    jewelry_type_val = submission.jewelry_type.value
+
+    _PHOTOGRAPHY_REQUIREMENTS = {
+        "Ring": [
+            "",
+            "RING PHOTOGRAPHY REQUIREMENTS (MANDATORY):",
+            "  - Show the ring upright, band resting on a flat surface or elevated on a clear acrylic stand",
+            "  - Camera angle: 45-degree three-quarter hero shot showing both the face and the band profile",
+            "  - The stone and setting must be the dominant focal point, tack-sharp",
+            "  - Interior of the band may be slightly visible to show craftsmanship",
+            "  - Never show the ring lying flat or top-down only",
+            "  - Single ring centred in frame with elegant negative space around it",
+        ],
+        "Bracelet": [
+            "",
+            "BRACELET PHOTOGRAPHY REQUIREMENTS (MANDATORY):",
+            "  - Show the bracelet in an open oval or slightly curved form, as if resting on a wrist",
+            "  - Camera angle: slight elevated 3/4 angle to show both the face and the curve of the bracelet",
+            "  - The clasp or closure should be visible but not the focal point",
+            "  - Full length of the bracelet must be visible — never cropped",
+            "  - If chain or link style: individual links must be distinguishable and sharp",
+            "  - If bangle style: circular silhouette shown with depth, not flat-on",
+            "  - Placed on a clean surface or floating with soft shadow beneath",
+        ],
+        "Earrings": [
+            "",
+            "EARRING PHOTOGRAPHY REQUIREMENTS (MANDATORY):",
+            "  - Show BOTH earrings hanging vertically, suspended from a thin wire/hook visible at the top",
+            "  - Earrings must face the viewer front-on, dangling downward naturally under gravity",
+            "  - The ear wire, post, or hook must be visible at the very top of each piece",
+            "  - Full drop length of the earring must be visible from top finding to lowest point",
+            "  - Camera angle: straight-on front view OR very slight 3/4 angle, never top-down, never flat lay",
+            "  - If drop/chandelier/halo/cluster style: show the full articulated hang and movement",
+            "  - If stud style: show the stud face-on with slight elevation to reveal setting depth",
+            "  - Pair presented side-by-side with a natural gap between them",
+        ],
+        "Necklace / Pendant": [
+            "",
+            "NECKLACE / PENDANT PHOTOGRAPHY REQUIREMENTS (MANDATORY):",
+            "  - Show the necklace/pendant hanging vertically, chain draped in a natural U-curve",
+            "  - The pendant must be the focal point, centred and hanging at the lowest point of the chain",
+            "  - Camera angle: straight-on front view showing the full chain length and pendant",
+            "  - Chain links or rope texture must be visible and sharp",
+            "  - Full length from clasp to pendant tip must be visible — never cropped",
+            "  - If layered or multi-strand: each strand clearly separated and distinguishable",
+            "  - Hanging against a clean background or draped over a soft surface for depth",
+        ],
+    }
+
+    photo_reqs = _PHOTOGRAPHY_REQUIREMENTS.get(jewelry_type_val)
+    if photo_reqs:
+        lines += photo_reqs
+
+    # ------------------------------------------------------------------
     # Task instructions
     # ------------------------------------------------------------------
+    piece_description = (
+        f"{stone_summary} set in {metal_val or 'the specified metal'}, "
+        f"{style_family_label} style {jewelry.lower()}."
+    )
+    critical_note = (
+        f"   CRITICAL: Follow the {jewelry_type_val.upper()} PHOTOGRAPHY REQUIREMENTS above exactly."
+        if photo_reqs else ""
+    )
     lines += [
         "",
         "=" * 64,
@@ -583,11 +647,10 @@ def build_product_prompt(
         "Generate a single JSON object with two keys:",
         "",
         f'1. "image_prompt"',
-        f"   Create an extremely detailed image generation prompt for: "
-        f"{stone_summary} set in {metal_val or 'the specified metal'}, "
-        f"{style_family_label} style ring.",
+        f"   Create an extremely detailed image generation prompt for: {piece_description}",
         f"   The prompt must visually render ALL design details from this brief.",
         f"   Apply every VISUAL DIRECTIVE from the inspiration keywords above.",
+        *([critical_note] if critical_note else []),
         f"   Follow ALL rules in the system prompt exactly.",
         "",
         f'2. "cautions"',
