@@ -27,7 +27,7 @@ from app.models import (
     StoneSuitability,
 )
 
-_IMAGEN_MODEL      = "gemini-3.1-flash-image-preview"  # text-to-image
+_IMAGEN_MODEL      = "imagen-4.0-generate-001"          # text-to-image
 _IMAGEN_REF_MODEL  = "gemini-2.5-flash-image"         # multimodal: image-in + image-out
 _OUTPUT_SIZE       = (1080, 1080)
 
@@ -218,23 +218,18 @@ async def generate_image(
     else:
         try:
             gen_response = await asyncio.to_thread(
-                client.models.generate_content,
+                client.models.generate_images,
                 model=_IMAGEN_MODEL,
-                contents=[prompt],
-                config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE", "TEXT"],
-                ),
+                prompt=prompt,
+                config=types.GenerateImagesConfig(number_of_images=1),
             )
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"Gemini image generation error: {exc}")
+            raise HTTPException(status_code=502, detail=f"Gemini Imagen error: {exc}")
 
-        image_bytes = None
-        for part in gen_response.candidates[0].content.parts:
-            if part.inline_data:
-                image_bytes = part.inline_data.data
-                break
-        if not image_bytes:
-            raise HTTPException(status_code=502, detail="Gemini returned no image in response.")
+        generated = gen_response.generated_images
+        if not generated:
+            raise HTTPException(status_code=502, detail="Gemini returned no images.")
+        image_bytes = generated[0].image.image_bytes
         used_model = _IMAGEN_MODEL
 
     image_bytes = _upscale_to_hd(image_bytes)
