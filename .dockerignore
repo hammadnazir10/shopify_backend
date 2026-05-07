@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+
+# Uploads (optional - adjust based on your needs)
+uploads/
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
