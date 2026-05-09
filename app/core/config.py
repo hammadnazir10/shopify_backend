@@ -1,7 +1,5 @@
 """Application settings loaded from environment / .env."""
 
-from pathlib import Path
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,9 +31,6 @@ class Settings(BaseSettings):
     # ---- Database ----
     database_url: str = "postgresql://postgres:Pakistan%40786@localhost:5432/shopify"
 
-    # ---- Local storage ----
-    temp_folder: str = "./temp"
-
     # ---- Upload limits ----
     max_upload_bytes: int = 10 * 1024 * 1024
     allowed_image_mime_types: tuple[str, ...] = (
@@ -45,12 +40,5 @@ class Settings(BaseSettings):
         "image/gif",
     )
 
-    @property
-    def temp_path(self) -> Path:
-        path = Path(self.temp_folder)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
 
 settings = Settings()
-settings.temp_path  # eagerly create the temp directory

@@ -46,7 +46,7 @@ async def upload_inspiration_image(
     file: UploadFile = File(...),
     user_id: int = Query(..., description="User ID"),
 ):
-    """Validate, normalise and persist an inspiration image (≤ 10 MB)."""
+    """Validate, normalise and upload an inspiration image directly to S3 (≤ 10 MB)."""
     return await upload_service.process_inspiration_upload(user_id, file)
 
 
@@ -78,7 +78,7 @@ async def submit_ring_selection(
         brief = await generate_design_brief(submission, stone_assessment)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    except Exception as exc:  # surface as bad-gateway from the LLM
+    except Exception as exc:
         logger.exception("LLM call failed")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -94,6 +94,7 @@ async def submit_ring_selection(
         summary=f"{summary} — {payload_summary}",
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
+        reference_image_path=submission.inspiration_image_url,
     )
 
     return RingDesignResponse(
@@ -116,7 +117,9 @@ async def submit_ring_selection(
 async def generate_image(
     design_id: int = Query(..., description="Design ID to link the generated image to"),
     prompt: str = Form(..., description="Image generation prompt"),
-    reference_url: Optional[str] = Form(None, description="Optional reference image URL"),
+    reference_url: Optional[str] = Form(
+        None, description="Optional reference image URL — overrides the design's saved reference"
+    ),
     db: Session = Depends(get_db),
 ):
     repo = DesignRepository(db)
@@ -127,16 +130,13 @@ async def generate_image(
             detail=f"Design with ID {design_id} not found.",
         )
 
-    reference_bytes, _ = await image_generation_service.resolve_reference(
-        design_user_id=design.user_id,
-        design_id=design_id,
-        repo=repo,
-        reference_url=reference_url,
+    reference_bytes = await image_generation_service.resolve_reference_bytes(
+        explicit_url=reference_url,
+        design_reference_url=design.reference_image_path,
     )
 
     return await image_generation_service.generate_for_design(
         design_id=design_id,
-        user_id=design.user_id,
         prompt=prompt,
         reference_bytes=reference_bytes,
         repo=repo,

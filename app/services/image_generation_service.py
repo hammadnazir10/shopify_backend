@@ -1,11 +1,13 @@
-"""Image generation via Google Gemini Imagen — text-to-image and image-reference flows."""
+"""Image generation via Google Gemini Imagen — text-to-image and image-reference flows.
+
+Generated and reference images stay in memory and on S3; nothing is written to local disk.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import io
 import uuid
-from pathlib import Path
 from typing import Optional
 
 import requests
@@ -18,7 +20,6 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.repositories import DesignRepository
 from app.schemas import ImageGenerateResponse
-from app.services import reference_image_service
 from app.services.s3_service import upload_image as s3_upload
 
 logger = get_logger(__name__)
@@ -88,18 +89,18 @@ def _generate_from_prompt(client: genai.Client, prompt: str) -> bytes:
     return response.generated_images[0].image.image_bytes
 
 
-async def _fetch_remote_reference(reference_url: str) -> bytes:
+async def _fetch_remote_image(url: str) -> bytes:
     try:
-        response = await asyncio.to_thread(requests.get, reference_url, timeout=10)
+        response = await asyncio.to_thread(requests.get, url, timeout=10)
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error fetching reference URL: {exc}",
+            detail=f"Error fetching reference image: {exc}",
         ) from exc
     if response.status_code != 200:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to fetch reference URL: {reference_url}",
+            detail=f"Failed to fetch reference image: {url}",
         )
     return response.content
 
@@ -108,37 +109,26 @@ async def _fetch_remote_reference(reference_url: str) -> bytes:
 # Public API
 # ---------------------------------------------------------------------------
 
-async def resolve_reference(
+async def resolve_reference_bytes(
     *,
-    design_user_id: int,
-    design_id: int,
-    repo: DesignRepository,
-    reference_url: Optional[str],
-) -> tuple[Optional[bytes], Optional[str]]:
-    """Resolve the reference image bytes and (optionally) record its S3 URL on the design."""
-    if reference_url:
-        return await _fetch_remote_reference(reference_url), reference_url
-
-    reference_path = reference_image_service.latest_reference_file(design_user_id)
-    if reference_path is None:
-        return None, None
-
-    reference_bytes = await asyncio.to_thread(reference_path.read_bytes)
-    s3_key = f"references/user_{design_user_id}/{reference_path.name}"
-    used_url = await asyncio.to_thread(s3_upload, s3_key, reference_bytes, "image/png")
-    await asyncio.to_thread(repo.set_reference_image, design_id, used_url)
-    return reference_bytes, used_url
+    explicit_url: Optional[str],
+    design_reference_url: Optional[str],
+) -> Optional[bytes]:
+    """Pick the best reference URL (explicit overrides design's) and return its bytes."""
+    url = explicit_url or design_reference_url
+    if not url:
+        return None
+    return await _fetch_remote_image(url)
 
 
 async def generate_for_design(
     *,
     design_id: int,
-    user_id: int,
     prompt: str,
     reference_bytes: Optional[bytes],
     repo: DesignRepository,
 ) -> ImageGenerateResponse:
-    """Generate an image, persist it locally + on S3, and update the design record."""
+    """Generate an image, upload it to S3, and update the design record."""
     _ensure_gemini_configured()
     client = _gemini_client()
 
@@ -159,22 +149,10 @@ async def generate_for_design(
         ) from exc
 
     image_bytes = _upscale_to_target(raw_bytes)
-
-    local_path = _save_locally(user_id, design_id, image_bytes)
-    s3_key = f"generated/{uuid.uuid4().hex}.png"
+    s3_key = f"generated/design_{design_id}/{uuid.uuid4().hex}.png"
     image_url = await asyncio.to_thread(s3_upload, s3_key, image_bytes, "image/png")
 
     await asyncio.to_thread(repo.set_generated_image, design_id, image_url)
-    logger.info(
-        "Generated image for design %s (user %s) → %s (local: %s)",
-        design_id, user_id, image_url, local_path,
-    )
+    logger.info("Generated image for design %s → %s", design_id, image_url)
 
     return ImageGenerateResponse(image_url=image_url, prompt=prompt)
-
-
-def _save_locally(user_id: int, design_id: int, image_bytes: bytes) -> Path:
-    directory = reference_image_service.generated_dir(user_id)
-    local_path = directory / f"design_{design_id}.png"
-    local_path.write_bytes(image_bytes)
-    return local_path
