@@ -32,6 +32,7 @@ from app.database import (
     update_design_image,
     update_reference_image_path,
     get_design,
+    generate_payload_summary,
 )
 
 _IMAGEN_MODEL      = "imagen-4.0-generate-001"          # text-to-image
@@ -212,13 +213,16 @@ async def submit_ring_selection(
     )
     if stone_assessment:
         summary += f" · {stone_assessment.stone_name} ({stone_assessment.fit_label.value})"
+    
+    # Generate detailed payload summary for dashboard
+    payload_summary = generate_payload_summary(body.model_dump(mode="json", exclude_none=True))
 
     # Store design in database
     design = await asyncio.to_thread(
         create_ring_design,
         user_id=user.id,
         design_payload=body.model_dump(mode="json", exclude_none=True),
-        summary=summary,
+        summary=f"{summary} — {payload_summary}",
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
     )

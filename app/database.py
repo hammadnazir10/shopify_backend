@@ -135,6 +135,45 @@ def get_or_create_user(customer_id: str, name: str, email: str = None):
         db.close()
 
 
+def generate_payload_summary(payload: dict) -> str:
+    """Generate a human-readable summary from design payload for dashboard display."""
+    parts = []
+    
+    # Jewelry type
+    if payload.get("jewelry_type"):
+        parts.append(payload["jewelry_type"])
+    
+    # Style direction
+    if payload.get("style_direction"):
+        parts.append(payload["style_direction"])
+    
+    # Style family
+    if payload.get("style_family"):
+        parts.append(payload["style_family"])
+    
+    # Metal
+    if payload.get("metal"):
+        parts.append(payload["metal"])
+    
+    # Setting
+    if payload.get("setting"):
+        parts.append(payload["setting"])
+    
+    # Stone choice
+    if payload.get("chosen_stone_name"):
+        parts.append(f"with {payload['chosen_stone_name']}")
+    
+    # Wear frequency
+    if payload.get("wear_frequency"):
+        parts.append(f"for {payload['wear_frequency'].lower()} wear")
+    
+    # Final preferences
+    if payload.get("final_preferences"):
+        parts.append(f"({payload['final_preferences']})")
+    
+    return " • ".join(parts) if parts else "Custom ring design"
+
+
 def create_ring_design(user_id: int, design_payload: dict, summary: str, image_prompt: str,
                        cautions: str = None, reference_image_path: str = None):
     """Create a new ring design record for a user."""
