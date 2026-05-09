@@ -1,61 +1,51 @@
 """User management routes."""
 
-import asyncio
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
-from app.database import get_or_create_user, SessionLocal, User
-
+from app.db.session import get_db
+from app.repositories import UserRepository
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
-@router.get(
-    "/get",
-    summary="Get user by customer ID",
-    description="Retrieves user information by customer ID",
-)
+def _serialize_user(user, *, include_updated_at: bool = True) -> dict:
+    payload = {
+        "user_id": user.id,
+        "customer_id": user.customer_id,
+        "name": user.name,
+        "email": user.email,
+        "created_at": user.created_at.isoformat(),
+    }
+    if include_updated_at:
+        payload["updated_at"] = user.updated_at.isoformat()
+    return payload
+
+
+@router.get("/get", summary="Get user by customer ID")
 async def get_user(
     customer_id: str = Query(..., description="Customer ID"),
+    db: Session = Depends(get_db),
 ):
-    """Get user details by customer ID."""
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.customer_id == customer_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail=f"User with customer_id {customer_id} not found")
-        
-        return {
-            "user_id": user.id,
-            "customer_id": user.customer_id,
-            "name": user.name,            "email": user.email,            "created_at": user.created_at.isoformat(),
-            "updated_at": user.updated_at.isoformat(),
-        }
-    finally:
-        db.close()
+    repo = UserRepository(db)
+    user = repo.get_by_customer_id(customer_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with customer_id {customer_id} not found",
+        )
+    return _serialize_user(user)
 
 
-@router.get(
-    "/all",
-    summary="List all users",
-    description="Returns a list of all users in the system",
-)
-async def list_all_users(skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100)):
-    """Get all users with pagination."""
-    db = SessionLocal()
-    try:
-        users = db.query(User).offset(skip).limit(limit).all()
-        return {
-            "count": len(users),
-            "users": [
-                {
-                    "user_id": user.id,
-                    "customer_id": user.customer_id,
-                    "name": user.name,
-                    "email": user.email,
-                    "created_at": user.created_at.isoformat(),
-                }
-                for user in users
-            ]
-        }
-    finally:
-        db.close()
+@router.get("/all", summary="List all users")
+async def list_all_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    repo = UserRepository(db)
+    users = repo.list(skip=skip, limit=limit)
+    return {
+        "count": len(users),
+        "users": [_serialize_user(user, include_updated_at=False) for user in users],
+    }

@@ -1,9 +1,14 @@
+"""S3 client wrapper — bucket bootstrap and object upload."""
+
 from __future__ import annotations
 
 import boto3
 from botocore.exceptions import ClientError
 
-from app.config import settings
+from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 _s3_client = None
 
@@ -28,9 +33,11 @@ def ensure_bucket_exists() -> None:
 
     try:
         client.head_bucket(Bucket=bucket)
-    except ClientError as e:
-        code = e.response["Error"]["Code"]
+        return
+    except ClientError as exc:
+        code = exc.response["Error"]["Code"]
         if code in ("404", "NoSuchBucket"):
+            logger.info("Creating S3 bucket %s in %s", bucket, region)
             if region == "us-east-1":
                 client.create_bucket(Bucket=bucket)
             else:
@@ -38,26 +45,22 @@ def ensure_bucket_exists() -> None:
                     Bucket=bucket,
                     CreateBucketConfiguration={"LocationConstraint": region},
                 )
-        elif code == "403":
+            return
+        if code == "403":
             raise RuntimeError(
                 f"S3 bucket '{bucket}' exists but is owned by a different AWS account. "
-                "S3 bucket names are globally unique — choose a unique name in S3_BUCKET_NAME."
-            )
-        else:
-            raise
+                "Choose a globally-unique S3_BUCKET_NAME."
+            ) from exc
+        raise
 
 
-def upload_image(filename: str, image_bytes: bytes, content_type: str = "image/png") -> str:
-    """Upload image bytes to S3 and return the public HTTPS URL."""
+def upload_image(key: str, image_bytes: bytes, content_type: str = "image/png") -> str:
+    """Upload bytes to S3 and return the public HTTPS URL."""
     client = _get_client()
-    bucket = settings.s3_bucket_name
-    region = settings.aws_region
-
     client.put_object(
-        Bucket=bucket,
-        Key=filename,
+        Bucket=settings.s3_bucket_name,
+        Key=key,
         Body=image_bytes,
         ContentType=content_type,
     )
-
-    return f"https://{bucket}.s3.{region}.amazonaws.com/{filename}"
+    return f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
