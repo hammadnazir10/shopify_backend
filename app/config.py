@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -17,5 +18,14 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-2"
     s3_bucket_name: str = "yss-jewelry-images"
 
+    database_url: str = "postgresql://postgres:Pakistan%40786@localhost:5432/shopify"
+
+    # Temp folder for reference images
+    temp_folder: str = "./temp"
+
 
 settings = Settings()
+
+# Create temp folder on startup
+temp_path = Path(settings.temp_folder)
+temp_path.mkdir(exist_ok=True)

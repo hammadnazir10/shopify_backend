@@ -382,6 +382,7 @@ class ImageUploadResponse(BaseModel):
 
 
 class RingDesignResponse(BaseModel):
+    design_id: int = Field(..., description="Design ID for image generation and tracking")
     summary: str
     image_prompt: str
     cautions: Optional[str] = None
@@ -393,5 +394,4 @@ class ImageGenerateRequest(BaseModel):
 
 class ImageGenerateResponse(BaseModel):
     image_url: str = Field(..., description="S3 URL of the generated image")
-    model: str = Field(default="nano", description="Model used for generation")
     prompt: str = Field(..., description="The prompt that was submitted")

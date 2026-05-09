@@ -24,6 +24,9 @@ ENV/
 # Uploads (user-submitted files)
 uploads/
 
+# Temp files
+temp/
+
 # IDEs
 .vscode/
 .idea/
