@@ -85,13 +85,16 @@ async def submit_ring_selection(
             detail=f"LLM error: {exc}",
         ) from exc
 
-    summary = _build_summary(submission, stone_assessment)
+    payload = body.model_dump(mode="json", exclude_none=True)
+    headline = _build_summary(submission, stone_assessment)
+    detail = _payload_summary(payload)
+    full_summary = f"{headline} — {detail}" if detail else headline
 
     design = await asyncio.to_thread(
         design_repo.create,
         user_id=user.id,
-        design_payload=body.model_dump(mode="json", exclude_none=True),
-        summary=f"{summary} — {payload_summary}",
+        design_payload=payload,
+        summary=full_summary,
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
         reference_image_path=submission.inspiration_image_url,
@@ -99,7 +102,7 @@ async def submit_ring_selection(
 
     return RingDesignResponse(
         design_id=design.id,
-        summary=summary,
+        summary=full_summary,
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
     )
@@ -198,3 +201,26 @@ def _build_summary(submission, assessment: Optional[StoneSuitability]) -> str:
     if assessment:
         summary += f" · {assessment.stone_name} ({assessment.fit_label.value})"
     return summary
+
+
+_SUMMARY_FIELDS = (
+    "jewelleryType",
+    "genderType",
+    "ringStyleFamily",
+    "metalType",
+    "prefersetting",
+    "gemType",
+    "stonecolor",
+    "wearFrequency",
+    "personalPreferences",
+)
+
+
+def _payload_summary(payload: dict) -> str:
+    """Render a human-friendly bullet summary for dashboard display."""
+    parts: list[str] = []
+    for field in _SUMMARY_FIELDS:
+        value = payload.get(field)
+        if value:
+            parts.append(str(value))
+    return " • ".join(parts)
