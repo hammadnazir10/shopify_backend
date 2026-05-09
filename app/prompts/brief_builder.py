@@ -17,7 +17,9 @@ from app.prompts.descriptors import (
     STYLE_FAMILY_VISUAL,
     WEAR_CONTEXT,
 )
-from app.schemas import QuestionnaireSubmission, StoneBranch, StoneSuitability
+from app.schemas.enums import StoneBranch
+from app.schemas.questionnaire import QuestionnaireSubmission
+from app.schemas.stone import StoneSuitability
 
 _DIVIDER = "=" * 64
 _INSPIRATION_TAIL_RE = re.compile(r"\n*inspiration keywords\s*:.*$", re.IGNORECASE)

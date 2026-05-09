@@ -10,15 +10,16 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.db.session import get_db
-from app.repositories import DesignRepository, UserRepository
-from app.schemas import (
+from app.repositories.design_repository import DesignRepository
+from app.repositories.user_repository import UserRepository
+from app.schemas.enums import StoneBranch
+from app.schemas.questionnaire import RingSelectionPayload
+from app.schemas.responses import (
     ImageGenerateResponse,
     ImageUploadResponse,
     RingDesignResponse,
-    RingSelectionPayload,
-    StoneBranch,
-    StoneSuitability,
 )
+from app.schemas.stone import StoneSuitability
 from app.services import image_generation_service, upload_service
 from app.services.llm_service import generate_design_brief
 from app.services.stone_service import (

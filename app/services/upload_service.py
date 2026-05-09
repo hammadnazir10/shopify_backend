@@ -13,7 +13,7 @@ from fastapi import HTTPException, UploadFile, status
 from PIL import Image
 
 from app.core.config import settings
-from app.schemas import ImageUploadResponse
+from app.schemas.responses import ImageUploadResponse
 from app.services.s3_service import upload_image as s3_upload
 
 

@@ -12,8 +12,11 @@ from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.prompts import HUMAN_PROMPT, SYSTEM_PROMPT, build_product_prompt
-from app.schemas import DesignBrief, QuestionnaireSubmission, StoneSuitability
+from app.prompts.brief_builder import build_product_prompt
+from app.prompts.system_prompt import HUMAN_PROMPT, SYSTEM_PROMPT
+from app.schemas.questionnaire import QuestionnaireSubmission
+from app.schemas.responses import DesignBrief
+from app.schemas.stone import StoneSuitability
 
 logger = get_logger(__name__)
 

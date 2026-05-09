@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Path as PathParam, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.repositories import DesignRepository, UserRepository
+from app.repositories.design_repository import DesignRepository
+from app.repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/api/designs", tags=["Designs"])
 

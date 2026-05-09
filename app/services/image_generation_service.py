@@ -18,8 +18,8 @@ from PIL import Image
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.repositories import DesignRepository
-from app.schemas import ImageGenerateResponse
+from app.repositories.design_repository import DesignRepository
+from app.schemas.responses import ImageGenerateResponse
 from app.services.s3_service import upload_image as s3_upload
 
 logger = get_logger(__name__)

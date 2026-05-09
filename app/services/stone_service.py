@@ -12,12 +12,8 @@ from app.data import (
     STONE_TABLE,
     YSS_STONE_CATALOG,
 )
-from app.schemas import (
-    FIT_TO_LABEL,
-    JewelryType,
-    StoneSuitability,
-    WearFrequency,
-)
+from app.schemas.enums import JewelryType, WearFrequency
+from app.schemas.stone import FIT_TO_LABEL, StoneSuitability
 
 # ---------------------------------------------------------------------------
 # Scoring constants
