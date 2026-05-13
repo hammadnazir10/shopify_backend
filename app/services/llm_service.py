@@ -64,3 +64,37 @@ async def generate_design_brief(
     chain = _build_chain()
     raw = await chain.ainvoke({"product_prompt": product_prompt})
     return _parse_response(raw)
+
+
+async def generate_design_summary(payload: dict) -> str:
+    """Generate a short, human-friendly summary of the design from the raw payload.
+
+    Returns a one-line summary suitable for dashboards, e.g.
+    "Ring · Signet · White gold · Masculine · Alexandrite"
+    """
+    if not settings.openai_api_key:
+        raise ValueError("OPENAI_API_KEY is not set. Add it to your .env file.")
+
+    # Build a concise human prompt asking for a one-line summary
+    human_prompt = (
+        "You are an assistant that writes a concise, human-friendly summary for a jewellery "
+        "design based on a JSON payload. Return a single short sentence or headline that includes "
+        "piece type, style family, metal, style direction, and main stone if present. Do not include "
+        "numbers or JSON — just a brief headline.\n\nPayload JSON:\n{payload_json}\n\nSummary:")
+
+    payload_json = json.dumps(payload, ensure_ascii=False, indent=2)
+    prompt = human_prompt.replace("{payload_json}", payload_json)
+
+    llm = ChatOpenAI(model=settings.model_name, api_key=settings.openai_api_key, temperature=0.2)
+    chain = ChatPromptTemplate.from_messages([
+        ("system", SYSTEM_PROMPT),
+        ("human", prompt),
+    ]) | llm | StrOutputParser()
+
+    raw = await chain.ainvoke({})
+    # strip fences and whitespace
+    summary = _JSON_FENCE_RE.sub("", raw).strip().strip('`').strip()
+    # limit length
+    if len(summary) > 200:
+        summary = summary[:200].rsplit(" ", 1)[0]
+    return summary

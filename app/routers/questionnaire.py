@@ -6,6 +6,7 @@ import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -21,7 +22,7 @@ from app.schemas.responses import (
 )
 from app.schemas.stone import StoneSuitability
 from app.services import image_generation_service, upload_service
-from app.services.llm_service import generate_design_brief
+from app.services.llm_service import generate_design_brief, generate_design_summary
 from app.services.stone_service import (
     assess_stone_by_name,
     get_stone_suitability_for_own_stone,
@@ -45,10 +46,12 @@ router = APIRouter(prefix="/api", tags=["Ring Design"])
 )
 async def upload_inspiration_image(
     file: UploadFile = File(...),
-    user_id: int = Query(..., description="User ID"),
 ):
-    """Validate, normalise and upload an inspiration image directly to S3 (≤ 10 MB)."""
-    return await upload_service.process_inspiration_upload(user_id, file)
+    """Validate, normalise and upload an inspiration image directly to S3 (≤ 10 MB).
+
+    Accepts only the image file — no user or customer identifiers required.
+    """
+    return await upload_service.process_inspiration_upload(file)
 
 
 # ---------------------------------------------------------------------------
@@ -66,6 +69,7 @@ async def submit_ring_selection(
     name: str = Query(..., description="Customer name from auth"),
     email: Optional[str] = Query(None, description="Customer email from auth"),
     db: Session = Depends(get_db),
+    request: Request = None,
 ):
     user_repo = UserRepository(db)
     design_repo = DesignRepository(db)
@@ -86,15 +90,40 @@ async def submit_ring_selection(
             detail=f"LLM error: {exc}",
         ) from exc
 
-    payload = body.model_dump(mode="json", exclude_none=True)
+    payload_dict = body.model_dump(exclude_none=True)
+    # If the incoming payload didn't match the expected camelCase fields,
+    # `body` may be empty. In that case, try to read the raw JSON and
+    # persist it directly so we don't lose user-submitted data.
+    if not payload_dict and request is not None:
+        try:
+            raw = await request.json()
+            if isinstance(raw, dict):
+                payload_dict = raw
+        except Exception:
+            # If reading raw JSON fails, leave payload_dict as empty dict
+            pass
     headline = _build_summary(submission, stone_assessment)
-    detail = _payload_summary(payload)
-    full_summary = f"{headline} — {detail}" if detail else headline
+    # If submission lacked parsed fields (caused headline to be generic),
+    # fall back to deriving the headline from the raw payload dict.
+    if (
+        (not submission.style_family)
+        and (not submission.metal)
+        and (not submission.style_direction)
+    ):
+        headline = _build_summary_from_payload(payload_dict, stone_assessment)
+    # Prefer a GPT-generated headline summary from the raw payload
+    try:
+        gpt_summary = await generate_design_summary(payload_dict)
+        full_summary = gpt_summary
+    except Exception:
+        # Fallback to local summary builder
+        payload_summary = _payload_summary(payload_dict)
+        full_summary = f"{headline} — {payload_summary}" if payload_summary else headline
 
     design = await asyncio.to_thread(
         design_repo.create,
         user_id=user.id,
-        design_payload=payload,
+        design_payload=payload_dict,
         summary=full_summary,
         image_prompt=brief.image_prompt,
         cautions=brief.cautions,
@@ -201,6 +230,40 @@ def _build_summary(submission, assessment: Optional[StoneSuitability]) -> str:
     summary = f"Ring · {style_family} · {metal} · {direction}"
     if assessment:
         summary += f" · {assessment.stone_name} ({assessment.fit_label.value})"
+    return summary
+
+
+def _build_summary_from_payload(payload: dict, assessment: Optional[StoneSuitability]) -> str:
+    """Build a headline summary from a raw payload dict (snake_case or camelCase).
+
+    This is used when the Pydantic `submission` is empty because the incoming
+    JSON used different key names. It looks for common keys in both cases.
+    """
+    def _get(*keys):
+        for k in keys:
+            v = payload.get(k)
+            if v:
+                return v
+        return None
+
+    style_family = _get("style_family", "ringStyleFamily", "style") or "Custom"
+    metal = _get("metal", "metalType") or "Mixed metal"
+    # style_direction may be stored as style_direction or gender_type
+    direction = _get("style_direction", "styleDirection", "gender_type", "genderType") or "Unspecified"
+
+    summary = f"Ring · {style_family} · {metal} · {direction}"
+
+    # Stone info
+    stone_name = _get("chosen_stone_name", "chosenStoneName", "gemType", "gem_type")
+    fit_label = None
+    if assessment:
+        fit_label = assessment.fit_label.value if hasattr(assessment, "fit_label") else None
+
+    if stone_name:
+        summary += f" · {stone_name}"
+        if fit_label:
+            summary += f" ({fit_label})"
+
     return summary
 
 

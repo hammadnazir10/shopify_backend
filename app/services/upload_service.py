@@ -17,15 +17,19 @@ from app.schemas.responses import ImageUploadResponse
 from app.services.s3_service import upload_image as s3_upload
 
 
-async def process_inspiration_upload(user_id: int, file: UploadFile) -> ImageUploadResponse:
-    """Validate, normalise, and upload an inspiration image to S3."""
+async def process_inspiration_upload(file: UploadFile) -> ImageUploadResponse:
+    """Validate, normalise, and upload an inspiration image to S3.
+
+    This variant stores uploads without a user association under
+    `references/unidentified/` so the endpoint can accept only a file.
+    """
     _validate_content_type(file.content_type)
     contents = await file.read()
     _validate_size(len(contents))
 
     png_bytes = _normalise_to_png(contents)
     filename = f"{uuid.uuid4().hex}.png"
-    s3_key = f"references/user_{user_id}/{filename}"
+    s3_key = f"references/unidentified/{filename}"
 
     image_url = await asyncio.to_thread(s3_upload, s3_key, png_bytes, "image/png")
     return ImageUploadResponse(image_url=image_url, filename=filename)
