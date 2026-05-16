@@ -65,6 +65,7 @@ services:
 
 networks:
   shopify-network:
+    name: shopify-network
     driver: bridge
 
 volumes:
