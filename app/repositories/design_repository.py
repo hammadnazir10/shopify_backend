@@ -45,6 +45,9 @@ class DesignRepository:
             .all()
         )
 
+    def list_all(self) -> list[RingDesign]:
+        return self._db.query(RingDesign).order_by(RingDesign.created_at.desc()).all()
+
     def set_generated_image(self, design_id: int, image_url: str) -> Optional[RingDesign]:
         design = self.get(design_id)
         if design is None:

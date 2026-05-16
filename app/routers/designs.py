@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.repositories.design_repository import DesignRepository
 from app.repositories.user_repository import UserRepository
+from app.schemas.enums import UserRole
 
 router = APIRouter(prefix="/api/designs", tags=["Designs"])
 
@@ -41,7 +42,11 @@ async def get_designs_by_customer(
             detail=f"User with customer_id {customer_id} not found",
         )
 
-    designs = DesignRepository(db).list_for_user(user.id)
+    repo = DesignRepository(db)
+    if user.role == UserRole.admin.value:
+        designs = repo.list_all()
+    else:
+        designs = repo.list_for_user(user.id)
     return {
         "customer_id": customer_id,
         "count": len(designs),
