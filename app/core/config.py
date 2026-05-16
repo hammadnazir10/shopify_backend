@@ -29,7 +29,11 @@ class Settings(BaseSettings):
     s3_bucket_name: str = "yss-jewelry-images"
 
     # ---- Database ----
-    database_url: str = "postgresql://postgres:Pakistan%40786@localhost:5432/shopify"
+    database_url: str = Field(
+        default="postgresql://postgres:Pakistan%40786@localhost:5432/shopify",
+        description="Database connection string",
+    )
+
 
     # ---- Upload limits ----
     max_upload_bytes: int = 10 * 1024 * 1024

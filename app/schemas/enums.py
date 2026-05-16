@@ -61,3 +61,8 @@ class WearFrequency(str, Enum):
     every_day = "Every day"
     often_carefully = "Often, but carefully"
     special_occasions = "Special occasions"
+
+
+class UserRole(str, Enum):
+    customer = "customer"
+    admin = "admin"

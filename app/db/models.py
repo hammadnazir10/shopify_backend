@@ -2,10 +2,11 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.schemas.enums import UserRole
 
 
 class User(Base):
@@ -15,6 +16,12 @@ class User(Base):
     customer_id = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=True, index=True)
+    role = Column(
+        String(20),
+        nullable=False,
+        default=UserRole.customer.value,
+        server_default=text("'customer'"),
+    )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -25,7 +32,7 @@ class User(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} customer_id={self.customer_id!r}>"
+        return f"<User id={self.id} customer_id={self.customer_id!r} role={self.role!r}>"
 
 
 class RingDesign(Base):

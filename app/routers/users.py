@@ -15,6 +15,7 @@ def _serialize_user(user, *, include_updated_at: bool = True) -> dict:
         "customer_id": user.customer_id,
         "name": user.name,
         "email": user.email,
+        "role": user.role,
         "created_at": user.created_at.isoformat(),
     }
     if include_updated_at:

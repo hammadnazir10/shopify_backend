@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Add an entrypoint that runs schema migrations before the app starts
+RUN chmod +x /app/entrypoint.sh
+
 # Expose port (can be overridden with -p flag)
 EXPOSE 8000
 
@@ -25,5 +28,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8000/', timeout=5)" || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations, then start the application
+ENTRYPOINT ["/app/entrypoint.sh"]

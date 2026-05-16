@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.db.models import User
+from app.schemas.enums import UserRole
 
 
 class UserRepository:
@@ -20,7 +21,7 @@ class UserRepository:
     def get_or_create(self, customer_id: str, name: str, email: Optional[str] = None) -> User:
         user = self.get_by_customer_id(customer_id)
         if user is None:
-            user = User(customer_id=customer_id, name=name, email=email)
+            user = User(customer_id=customer_id, name=name, email=email, role=UserRole.customer.value)
             self._db.add(user)
             self._db.commit()
             self._db.refresh(user)

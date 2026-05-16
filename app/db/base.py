@@ -22,7 +22,8 @@ def init_db() -> None:
     """Create tables and apply legacy migrations. Idempotent."""
     # Import models to ensure they are registered on the metadata.
     from app.db import models  # noqa: F401
-    from app.db.migrations import migrate_ring_design_schema
+    from app.db.migrations import migrate_ring_design_schema, migrate_user_schema
 
     Base.metadata.create_all(bind=engine)
+    migrate_user_schema()
     migrate_ring_design_schema()
